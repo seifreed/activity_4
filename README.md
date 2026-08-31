@@ -166,3 +166,5 @@ docker compose --profile tools run --rm format
 | 404 | El fichero no existe o no pertenece al usuario |
 | 409 | El correo ya esta registrado |
 | 422 | Cuerpo, cabecera `Auth` o lista de ficheros a fusionar mal formados |
+
+<!-- prueba del check de formato -->
