@@ -22,7 +22,8 @@ CREATE TABLE IF NOT EXISTS "files" (
     "id" SERIAL NOT NULL PRIMARY KEY,
     "name" VARCHAR(255) NOT NULL,
     "description" TEXT,
-    "content" BYTEA,
+    "object_key" VARCHAR(255),
+    "size" INT NOT NULL  DEFAULT 0,
     "created_at" TIMESTAMPTZ NOT NULL  DEFAULT CURRENT_TIMESTAMP,
     "owner_external_id" INT NOT NULL REFERENCES "users" ("external_id") ON DELETE CASCADE
 );
