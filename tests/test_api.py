@@ -1,4 +1,4 @@
-"""Pruebas de la API completa contra la base de datos de Postgres."""
+"""Pruebas de la API completa contra Postgres, Redis y MinIO."""
 
 import base64
 from io import BytesIO
@@ -98,6 +98,25 @@ def test_los_endpoints_de_ficheros_exigen_token(client):
     assert client.get("/files", headers={"Auth": "inventado"}).status_code == 401
 
 
+def test_la_sesion_vive_en_redis_con_caducidad(client):
+    from redis import Redis
+
+    from app.config import settings
+
+    headers = new_session(client)
+    assert client.get("/authentication/introspect", headers=headers).status_code == 200
+
+    # Cliente sincrono aparte: el de la aplicacion vive en el bucle de eventos del servidor.
+    cache = Redis.from_url(settings.redis_url, decode_responses=True)
+    key = "session:" + headers["Auth"]
+
+    assert cache.exists(key) == 1
+    assert 0 < cache.ttl(key) <= settings.session_ttl_seconds
+
+    client.post("/authentication/logout", headers=headers)
+    assert cache.exists(key) == 0
+
+
 def test_ciclo_completo_de_un_fichero(client):
     headers = new_session(client)
 
@@ -119,6 +138,8 @@ def test_ciclo_completo_de_un_fichero(client):
     filled = client.get(f"/files/{file_id}", headers=headers).json()
     assert filled["has_content"] is True
     assert filled["size"] > 0
+    assert filled["object_key"] is not None
+    assert filled["download_url"].startswith("http")
 
     assert [f["id"] for f in client.get("/files", headers=headers).json()] == [file_id]
     assert client.delete(f"/files/{file_id}", headers=headers).status_code == 200
@@ -163,3 +184,21 @@ def test_merge_no_alcanza_los_ficheros_de_otro_usuario(client):
 
     response = client.post("/files/merge", json={"file_ids": [propio, ajeno]}, headers=intruder)
     assert response.status_code == 404
+
+
+def test_el_enlace_compartible_descarga_el_fichero(client):
+    import httpx
+
+    headers = new_session(client)
+    file_id = upload(client, headers, "compartido.pdf", 2)
+
+    url = client.get(f"/files/{file_id}", headers=headers).json()["download_url"]
+
+    # El enlace se firma contra la direccion publica, que desde dentro de la red de docker no
+    # resuelve. Se cambia el destino pero se conserva la cabecera Host, que entra en la firma.
+    response = httpx.get(
+        url.replace("http://localhost:9000", "http://storage:9000"),
+        headers={"Host": "localhost:9000"},
+    )
+    assert response.status_code == 200
+    assert response.content.startswith(b"%PDF")
