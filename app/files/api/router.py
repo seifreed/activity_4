@@ -29,6 +29,7 @@ def to_summary(stored: StoredFile) -> FileSummary:
         description=stored.description,
         size=stored.size,
         has_content=stored.has_content,
+        object_key=stored.object_key,
     )
 
 
@@ -90,7 +91,9 @@ async def get_file(
     stored = await service.get(auth, file_id)
     detail = FileDetail(**to_summary(stored).model_dump())
     if stored.has_content:
-        detail.content = base64.b64encode(stored.content).decode()
+        content = await service.read_content(auth, file_id)
+        detail.content = base64.b64encode(content).decode()
+        detail.download_url = await service.shareable_url(auth, file_id)
     return detail
 
 

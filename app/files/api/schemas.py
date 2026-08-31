@@ -13,11 +13,18 @@ class FileSummary(BaseModel):
     description: str | None = None
     size: int = Field(description="Tamano del contenido en bytes, 0 si aun no se ha subido")
     has_content: bool
+    object_key: str | None = Field(
+        default=None, description="Clave del objeto en el almacenamiento de S3"
+    )
 
 
 class FileDetail(FileSummary):
     content: str | None = Field(
         default=None, description="Contenido del fichero codificado en base64"
+    )
+    download_url: str | None = Field(
+        default=None,
+        description="Enlace temporal a S3 para descargar el fichero sin pasar por la API",
     )
 
 

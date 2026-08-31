@@ -13,6 +13,7 @@ from app.authentication.domain.errors import (
 from app.config import settings
 from app.db import TORTOISE_ORM
 from app.files.api.router import router as files_router
+from app.files.dependency_injection.container import get_object_storage
 from app.files.domain.errors import (
     FileNotFound,
     FileWithoutContent,
@@ -37,6 +38,7 @@ async def lifespan(_: FastAPI):
     await Tortoise.init(config=TORTOISE_ORM)
     if settings.generate_schemas:
         await Tortoise.generate_schemas(safe=True)
+    get_object_storage().ensure_bucket()
     yield
     await Tortoise.close_connections()
 
