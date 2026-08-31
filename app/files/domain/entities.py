@@ -7,12 +7,9 @@ class StoredFile:
     owner_id: int
     name: str
     description: str | None = None
-    content: bytes | None = None
-
-    @property
-    def size(self) -> int:
-        return len(self.content) if self.content else 0
+    object_key: str | None = None
+    size: int = 0
 
     @property
     def has_content(self) -> bool:
-        return self.content is not None
+        return self.object_key is not None

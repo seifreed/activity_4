@@ -4,7 +4,7 @@ from app.files.domain.entities import StoredFile
 
 
 class FileRepository(ABC):
-    """Puerto de salida hacia el almacen de ficheros."""
+    """Puerto de salida hacia el almacen de metadatos."""
 
     @abstractmethod
     async def create(self, owner_id: int, name: str, description: str | None) -> int: ...
@@ -16,10 +16,30 @@ class FileRepository(ABC):
     async def get_for_owner(self, file_id: int, owner_id: int) -> StoredFile | None: ...
 
     @abstractmethod
-    async def set_content(self, file_id: int, content: bytes) -> None: ...
+    async def attach_object(self, file_id: int, object_key: str, size: int) -> None: ...
 
     @abstractmethod
     async def delete(self, file_id: int) -> bool: ...
+
+
+class ObjectStorage(ABC):
+    """Puerto de salida hacia el almacenamiento de objetos.
+
+    El dominio no sabe si detras hay S3, MinIO o un disco local.
+    """
+
+    @abstractmethod
+    async def put(self, key: str, content: bytes) -> None: ...
+
+    @abstractmethod
+    async def get(self, key: str) -> bytes: ...
+
+    @abstractmethod
+    async def delete(self, key: str) -> None: ...
+
+    @abstractmethod
+    async def shareable_url(self, key: str, filename: str) -> str:
+        """Enlace temporal para descargar el objeto sin pasar por la API."""
 
 
 class PdfMerger(ABC):

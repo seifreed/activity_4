@@ -9,12 +9,16 @@ def to_entity(row: FileModel) -> StoredFile:
         owner_id=row.owner_id,
         name=row.name,
         description=row.description,
-        content=bytes(row.content) if row.content is not None else None,
+        object_key=row.object_key,
+        size=row.size,
     )
 
 
 class TortoiseFileRepository(FileRepository):
-    """Implementacion del puerto de ficheros contra Postgres."""
+    """Implementacion del puerto de ficheros contra Postgres.
+
+    Solo guarda metadatos: el contenido vive en el almacenamiento de objetos.
+    """
 
     async def create(self, owner_id: int, name: str, description: str | None) -> int:
         row = await FileModel.create(owner_id=owner_id, name=name, description=description)
@@ -28,8 +32,8 @@ class TortoiseFileRepository(FileRepository):
         row = await FileModel.get_or_none(id=file_id, owner_id=owner_id)
         return None if row is None else to_entity(row)
 
-    async def set_content(self, file_id: int, content: bytes) -> None:
-        await FileModel.filter(id=file_id).update(content=content)
+    async def attach_object(self, file_id: int, object_key: str, size: int) -> None:
+        await FileModel.filter(id=file_id).update(object_key=object_key, size=size)
 
     async def delete(self, file_id: int) -> bool:
         return await FileModel.filter(id=file_id).delete() > 0
