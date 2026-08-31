@@ -50,7 +50,7 @@ class AuthenticationService:
             raise InvalidCredentials()
 
         token = self._tokens.generate()
-        await self._sessions.create(token, user.external_id)
+        await self._sessions.create(token, user)
         return token
 
     async def logout(self, token: str) -> None:

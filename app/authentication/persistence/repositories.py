@@ -46,9 +46,9 @@ class TortoiseUserRepository(UserRepository):
 class TortoiseSessionRepository(SessionRepository):
     """Implementacion del puerto de sesiones contra Postgres."""
 
-    async def create(self, token: str, external_id: int) -> None:
-        user = await UserModel.get(external_id=external_id)
-        await SessionModel.create(token=token, user=user)
+    async def create(self, token: str, user: User) -> None:
+        row = await UserModel.get(external_id=user.external_id)
+        await SessionModel.create(token=token, user=row)
 
     async def get_user(self, token: str) -> User | None:
         row = await SessionModel.get_or_none(token=token).prefetch_related("user")
