@@ -12,17 +12,48 @@ services:
       retries: 10
     restart: unless-stopped
 
+  cache:
+    image: redis:7-alpine
+    command: redis-server --save "" --appendonly no
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  storage:
+    image: minio/minio:RELEASE.2024-01-31T20-20-33Z
+    command: server /data --console-address ":9001"
+    env_file:
+      - .env
+    ports:
+      - "${S3_PORT:-9000}:9000"
+      - "${S3_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
   api:
     build:
       context: .
       target: production
-    image: activity-3-api:latest
+    image: seifreed/activity_4:latest
     env_file:
       - .env
     ports:
       - "${API_PORT:-8000}:8000"
     depends_on:
       db:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+      storage:
         condition: service_healthy
     restart: unless-stopped
 
@@ -38,6 +69,10 @@ services:
       - "${API_DEV_PORT:-8001}:8000"
     depends_on:
       db:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+      storage:
         condition: service_healthy
     profiles:
       - dev
@@ -84,3 +119,4 @@ services:
 
 volumes:
   postgres-data:
+  minio-data:
